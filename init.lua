@@ -936,6 +936,11 @@ require('lazy').setup({
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
 
+      require('mini.tabline').setup {
+        show_icons = vim.g.have_nerd_font,
+        tabpage_section = 'right',
+      }
+
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
       --  and try some other statusline plugin
