@@ -4,7 +4,6 @@
 -- See the kickstart.nvim README for more information
 return {
   { import = 'custom.plugins.csharp' },
-  { import = 'custom.plugins.rust' },
   { 'wojciechkepka/vim-github-dark' },
   { 'wellle/context.vim' },
   { 'tpope/vim-fugitive' },
