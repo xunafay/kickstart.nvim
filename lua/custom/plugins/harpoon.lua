@@ -4,7 +4,7 @@ return {
     'nvim-lua/plenary.nvim',
   },
   branch = 'harpoon2',
-  setup = function()
+  config = function()
     local harpoon = require 'harpoon'
 
     -- REQUIRED
@@ -34,33 +34,33 @@ return {
         :find()
     end
 
-    vim.keymap.set('n', '<leader>ha', function()
+    vim.keymap.set('n', '<leader>hpa', function()
       harpoon:list():add()
-    end)
+    end, { desc = 'Add file to harpoon' })
 
-    vim.keymap.set('n', '<leaderhh>', function()
+    vim.keymap.set('n', '<leader>hpl', function()
       toggle_telescope(harpoon:list())
     end, { desc = 'Open harpoon window' })
 
-    vim.keymap.set('n', '<leader>hn', function()
+    vim.keymap.set('n', '<leader>hpn', function()
       harpoon:list():select(1)
-    end)
-    vim.keymap.set('n', '<leader>he', function()
+    end, { desc = 'Go to harpoon 1' })
+    vim.keymap.set('n', '<leader>hpe', function()
       harpoon:list():select(2)
-    end)
-    vim.keymap.set('n', '<leader>ho', function()
+    end, { desc = 'Go to harpoon 2' })
+    vim.keymap.set('n', '<leader>hpo', function()
       harpoon:list():select(3)
-    end)
-    vim.keymap.set('n', '<leader>hi', function()
+    end, { desc = 'Go to harpoon 3' })
+    vim.keymap.set('n', '<leader>hpi', function()
       harpoon:list():select(4)
-    end)
+    end, { desc = 'Go to harpoon 4' })
 
     -- Toggle previous & next buffers stored within Harpoon list
-    vim.keymap.set('n', '<leader>hp', function()
+    vim.keymap.set('n', '<leader>hpp', function()
       harpoon:list():prev()
-    end)
-    vim.keymap.set('n', '<leader>hf', function()
+    end, { desc = 'Go to previous harpoon file' })
+    vim.keymap.set('n', '<leader>hpf', function()
       harpoon:list():next()
-    end)
+    end, { desc = 'Go to next harpoon file' })
   end,
 }
