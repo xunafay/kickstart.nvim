@@ -7,4 +7,5 @@ return {
   { 'wojciechkepka/vim-github-dark' },
   { 'wellle/context.vim' },
   { 'tpope/vim-fugitive' },
+  { import = 'custom.plugins.chipsoft' },
 }
