@@ -17,6 +17,27 @@ return {
     local default_opts = {
       auto_clean_after_session_restore = false,
       filesystem = {
+        -- renderers = {
+        --   directory = {
+        --     {
+        --       'chipSoftShorten',
+        --       render = function(config, node, state)
+        --         -- Shorten ChipSoft.Ezis.<Module> to Ezis.<Module>
+        --         -- Shorten ChipSoft.Services.<Module> to Serv.<Module>
+        --         -- Shorten ChipSoft.Publics.<Module> to Pub.<Module>
+        --
+        --         local path = node.path
+        --         local shortened_path = path
+        --         shortened_path = shortened_path:gsub('ChipSoft%.Ezis%.', 'Ezis%.')
+        --         shortened_path = shortened_path:gsub('ChipSoft%.Services%.', 'Serv%.')
+        --         shortened_path = shortened_path:gsub('ChipSoft%.Publics%.', 'Pub%.')
+        --         node.path = shortened_path
+        --         require('neo-tree.ui.renderer').renderers.directory[1].render(config, node, state)
+        --         node.path = path -- restore original path
+        --       end,
+        --     },
+        --   },
+        -- },
         window = {
           mappings = {
             ['<C-b>'] = 'close_window',
