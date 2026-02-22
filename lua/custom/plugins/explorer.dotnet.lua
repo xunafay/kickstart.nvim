@@ -1,5 +1,5 @@
 return {
-  dir = 'C:\\Users\\H.Witvrouwen\\AppData\\Local\\nvim\\explorer.dotnet.nvim',
+  dir = vim.fn.resolve(vim.fn.stdpath('config') .. '/explorer.dotnet.nvim'),
   config = function()
     require('dotnet_explorer').setup {
       renderer = {

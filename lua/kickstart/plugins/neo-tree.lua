@@ -8,7 +8,7 @@ return {
     'nvim-lua/plenary.nvim',
     'nvim-tree/nvim-web-devicons', -- not strictly required, but recommended
     'MunifTanjim/nui.nvim',
-    { dir = 'C:\\Users\\H.Witvrouwen\\AppData\\Local\\nvim\\explorer.dotnet.nvim' },
+    { dir = vim.fn.resolve(vim.fn.stdpath('config') .. '/explorer.dotnet.nvim'), lazy = true },
   },
   lazy = false,
   keys = {
