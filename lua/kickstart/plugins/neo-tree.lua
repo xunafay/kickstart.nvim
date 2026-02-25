@@ -4,11 +4,12 @@
 return {
   'nvim-neo-tree/neo-tree.nvim',
   version = '*',
+  enabled = false,
   dependencies = {
     'nvim-lua/plenary.nvim',
     'nvim-tree/nvim-web-devicons', -- not strictly required, but recommended
     'MunifTanjim/nui.nvim',
-    { dir = vim.fn.resolve(vim.fn.stdpath('config') .. '/explorer.dotnet.nvim'), lazy = true },
+    { dir = vim.fn.resolve(vim.fn.stdpath 'config' .. '/explorer.dotnet.nvim'), lazy = true },
   },
   lazy = false,
   keys = {

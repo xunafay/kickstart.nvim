@@ -2,6 +2,7 @@ return {
   'nvzone/floaterm',
   dependencies = 'nvzone/volt',
   lazy = false,
+  enabled = false,
   config = function()
     require('floaterm').setup {
       mappings = {

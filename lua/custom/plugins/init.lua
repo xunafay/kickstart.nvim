@@ -3,7 +3,6 @@
 --
 -- See the kickstart.nvim README for more information
 return {
-  { import = 'custom.plugins.csharp' },
   { 'wojciechkepka/vim-github-dark' },
   { 'wellle/context.vim' },
   { 'tpope/vim-fugitive' },

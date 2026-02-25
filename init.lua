@@ -435,7 +435,6 @@ require('lazy').setup({
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
-      pcall(require('telescope').load_extension, 'fidget')
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
@@ -489,15 +488,6 @@ require('lazy').setup({
     },
   },
   {
-    'j-hui/fidget.nvim',
-    opts = {
-      -- options
-      notification = {
-        override_vim_notify = true,
-      },
-    },
-  },
-  {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
     dependencies = {
@@ -515,9 +505,6 @@ require('lazy').setup({
       },
       'mason-org/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
-
-      -- Useful status updates for LSP.
-      { 'j-hui/fidget.nvim', opts = {} },
 
       -- Allows extra capabilities provided by blink.cmp
       'saghen/blink.cmp',

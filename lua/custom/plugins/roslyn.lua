@@ -5,15 +5,12 @@ return {
   opts = {
     -- your configuration comes here; leave empty for default settings
   },
-  dependencies = {
-    'j-hui/fidget.nvim',
-  },
   config = function()
     local handles = {}
 
     vim.lsp.config('roslyn', {
       on_attach = function()
-        print 'This will run when the server attaches!'
+        -- print 'This will run when the server attaches!'
       end,
       settings = {
         ['csharp|inlay_hints'] = {
@@ -51,13 +48,13 @@ return {
             message = ev.data.params[2].message,
           }
         else
-          handles[token] = require('fidget.progress').handle.create {
-            title = ev.data.params[2].state,
-            message = ev.data.params[2].message,
-            lsp_client = {
-              name = 'roslyn',
-            },
-          }
+          -- handles[token] = require('fidget.progress').handle.create {
+          --   title = ev.data.params[2].state,
+          --   message = ev.data.params[2].message,
+          --   lsp_client = {
+          --     name = 'roslyn',
+          --   },
+          -- }
         end
       end,
     })
