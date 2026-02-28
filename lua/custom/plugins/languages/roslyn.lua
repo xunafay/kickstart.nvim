@@ -1,4 +1,5 @@
 return {
+  enable = true,
   'seblyng/roslyn.nvim',
   ---@module 'roslyn.config'
   ---@type RoslynNvimConfig
@@ -32,6 +33,9 @@ return {
         },
         ['csharp|symbol_search'] = {
           dotnet_search_reference_assemblies = true,
+        },
+        ['csharp|formatting'] = {
+          dotnet_organize_imports_on_format = false,
         },
       },
     })

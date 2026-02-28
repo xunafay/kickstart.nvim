@@ -80,6 +80,7 @@ return {
   config = function()
     local dap = require 'dap'
     local dapui = require 'dapui'
+    local Snacks = require 'snacks'
 
     require('mason-nvim-dap').setup {
       -- Makes a best effort to setup the various debuggers with
@@ -121,28 +122,65 @@ return {
     }
 
     -- Change breakpoint icons
-    -- vim.api.nvim_set_hl(0, 'DapBreak', { fg = '#e51400' })
-    -- vim.api.nvim_set_hl(0, 'DapStop', { fg = '#ffcc00' })
-    -- local breakpoint_icons = vim.g.have_nerd_font
-    --     and { Breakpoint = '', BreakpointCondition = '', BreakpointRejected = '', LogPoint = '', Stopped = '' }
-    --   or { Breakpoint = '●', BreakpointCondition = '⊜', BreakpointRejected = '⊘', LogPoint = '◆', Stopped = '⭔' }
-    -- for type, icon in pairs(breakpoint_icons) do
-    --   local tp = 'Dap' .. type
-    --   local hl = (type == 'Stopped') and 'DapStop' or 'DapBreak'
-    --   vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
-    -- end
+    vim.api.nvim_set_hl(0, 'DapBreak', { fg = '#e51400' })
+    vim.api.nvim_set_hl(0, 'DapStop', { fg = '#ffcc00' })
+    local breakpoint_icons = vim.g.have_nerd_font
+        and { Breakpoint = '', BreakpointCondition = '', BreakpointRejected = '', LogPoint = '', Stopped = '' }
+      or { Breakpoint = '●', BreakpointCondition = '⊜', BreakpointRejected = '⊘', LogPoint = '◆', Stopped = '⭔' }
+    for type, icon in pairs(breakpoint_icons) do
+      local tp = 'Dap' .. type
+      local hl = (type == 'Stopped') and 'DapStop' or 'DapBreak'
+      vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
+    end
 
     dap.listeners.after.event_initialized['dapui_config'] = dapui.open
     dap.listeners.before.event_terminated['dapui_config'] = dapui.close
-    dap.listeners.before.event_exited['dapui_config'] = dapui.close
+    local dap = require 'dap'
 
-    -- Install golang specific config
-    require('dap-go').setup {
-      delve = {
-        -- On Windows delve must be run attached or it crashes.
-        -- See https://github.com/leoluz/nvim-dap-go/blob/main/README.md#configuring
-        detached = vim.fn.has 'win32' == 0,
+    dap.configurations.cs = {
+      {
+        type = 'coreclr',
+        name = 'Launch (Build + Select DLL)',
+        request = 'launch',
+        cwd = '${workspaceFolder}',
+
+        program = function()
+          return coroutine.create(function(dap_run_co)
+            Snacks.notify('Building project...', { level = 'info' })
+            local result = vim.system({ 'dotnet', 'build' }, { text = true }):wait()
+
+            if result.code ~= 0 then
+              Snacks.win {
+                title = 'Build Failed',
+                border = 'rounded',
+                width = 0.8,
+                height = 0.8,
+                buf = function(buf)
+                  vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(result.stdout .. '\n' .. result.stderr, '\n'))
+                end,
+              }
+              error 'Build failed'
+            end
+
+            Snacks.notify('Build succeeded', { level = 'info' })
+
+            local dlls = vim.fn.glob('**/bin/Debug/**/*.dll', true, true)
+
+            if #dlls == 0 then
+              error 'No DLLs found in bin/Debug'
+            end
+
+            local coro = assert(coroutine.running())
+            return vim.ui.select(dlls, {
+              prompt = 'Select DLL to debug',
+            }, function(item)
+              Snacks.notify(item)
+              coroutine.resume(dap_run_co, item)
+            end)
+          end)
+        end,
       },
     }
+    dap.listeners.before.event_exited['dapui_config'] = dapui.close
   end,
 }
