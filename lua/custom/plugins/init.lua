@@ -8,6 +8,5 @@ return {
   { import = 'custom.plugins.lsp' },
   { import = 'custom.plugins.movement' },
   { import = 'custom.plugins.syntax' },
-  { 'wellle/context.vim' },
-  { 'tpope/vim-fugitive' },
+  { import = 'custom.plugins.git' },
 }
