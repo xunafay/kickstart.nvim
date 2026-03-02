@@ -1,3 +1,3 @@
 [submodule "explorer.dotnet.nvim"]
-	path = explorer.dotnet.nvim
+	path = lua/explorer.dotnet.nvim
 	url = https://github.com/xunafay/dotnet.explorer.nvim.git

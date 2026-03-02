@@ -23,6 +23,7 @@ return {
 
     -- Add your own debuggers here
     'leoluz/nvim-dap-go',
+    'nicholasmata/nvim-dap-cs',
   },
   keys = {
     -- Basic debugging keymaps, feel free to change to your liking!
