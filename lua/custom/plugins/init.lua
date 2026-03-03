@@ -3,7 +3,7 @@
 --
 -- See the kickstart.nvim README for more information
 return {
-  { import = 'custom.plugins.languages' },
+  { import = 'custom.plugins.language-tools' },
   { import = 'custom.plugins.fluff' },
   { import = 'custom.plugins.lsp' },
   { import = 'custom.plugins.movement' },

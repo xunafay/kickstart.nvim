@@ -39,7 +39,12 @@ return {
     },
     indent = { enabled = true },
     input = { enabled = true },
-    picker = { enabled = true },
+    picker = {
+      enabled = true,
+      sources = {
+        explorer = {},
+      },
+    },
     notifier = { enabled = true },
     quickfile = { enabled = true },
     scope = { enabled = true },
@@ -171,6 +176,13 @@ return {
       end,
       desc = 'File Explorer',
     },
+    {
+      '<leader>E',
+      function()
+        Snacks.explorer.reveal()
+      end,
+    },
+    desc = 'Reveal in Explorer',
     {
       '<leader>tt',
       function()
