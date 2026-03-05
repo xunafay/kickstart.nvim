@@ -4,43 +4,44 @@ return {
     'nvim-lua/plenary.nvim',
   },
   branch = 'harpoon2',
+  keys = {
+    {
+      '<leader>hpa',
+      function()
+        require('harpoon'):list():add()
+      end,
+      desc = 'Add file to harpoon',
+    },
+    {
+      '<leader>hpl',
+      function()
+        local snacks = require 'snacks'
+        snacks.picker.pick() {
+          finder = function(opts, ctx)
+            local output = {}
+            for _, item in ipairs(require('harpoon'):list().items) do
+              if item and item.value:match '%S' then
+                table.insert(output, {
+                  text = item.value,
+                  file = item.value,
+                  pos = { item.context.row, item.context.col },
+                })
+              end
+            end
+            return output
+          end,
+        }
+        -- toggle_telescope(require('harpoon').list())
+      end,
+      desc = 'Open harpoon window',
+    },
+  },
   config = function()
     local harpoon = require 'harpoon'
-
-    -- REQUIRED
     harpoon:setup()
-    -- REQUIRED
 
     local harpoon_extensions = require 'harpoon.extensions'
     harpoon:extend(harpoon_extensions.builtins.highlight_current_file())
-
-    -- basic telescope configuration
-    local conf = require('telescope.config').values
-    local function toggle_telescope(harpoon_files)
-      local file_paths = {}
-      for _, item in ipairs(harpoon_files.items) do
-        table.insert(file_paths, item.value)
-      end
-
-      require('telescope.pickers')
-        .new({}, {
-          prompt_title = 'Harpoon',
-          finder = require('telescope.finders').new_table {
-            results = file_paths,
-          },
-          previewer = conf.file_previewer {},
-          sorter = conf.generic_sorter {},
-        })
-        :find()
-    end
-
-    vim.keymap.set('n', '<leader>hpa', function()
-      harpoon:list():add()
-    end, { desc = 'Add file to harpoon' })
-
-    vim.keymap.set('n', '<leader>hpl', function()
-      toggle_telescope(harpoon:list())
-    end, { desc = 'Open harpoon window' })
 
     vim.keymap.set('n', '<leader>hpn', function()
       harpoon:list():select(1)

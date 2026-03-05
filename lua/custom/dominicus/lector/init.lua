@@ -1,5 +1,5 @@
 local M = {}
-local Solution = require('custom.solution_workspaces.parser.solution').Solution
+local Solution = require('custom.dominicus.lector.solution').Solution
 
 --- Normalizes a file path to an absolute path with consistent separators.
 --- @private

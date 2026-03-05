@@ -43,6 +43,35 @@ return {
       enabled = true,
       sources = {
         explorer = {},
+        dotnet_explorer = {
+          sort = { fields = { 'sort' } },
+          supports_live = true,
+          tree = true,
+          watch = true,
+          auto_close = false,
+          diagnostics = false,
+          git_status = false,
+          follow_file = false,
+          layout = { preset = 'sidebar' },
+          finder = function(opts, ctx)
+            vim.notify('Loading solution...', vim.log.levels.INFO)
+            return require('custom.dominicus.cartographer.explorer').dotnet_explorer(opts, ctx)
+          end,
+          config = function(opts)
+            vim.notify('Configuring .NET Explorer...', vim.log.levels.INFO)
+            return require('custom.dominicus.cartographer.explorer').setup(opts)
+          end,
+          win = {
+            list = {
+              keys = {
+                ['l'] = 'confirm',
+                ['h'] = 'explorer_close',
+                ['<BS>'] = 'explorer_up',
+                ['r'] = 'explorer_update',
+              },
+            },
+          },
+        },
       },
     },
     notifier = { enabled = true },
