@@ -20,60 +20,23 @@ return {
     -- Allows extra capabilities provided by blink.cmp
     'saghen/blink.cmp',
   },
+  keys = {
+    { '<leader>rn', vim.lsp.buf.rename, desc = '[R]e[n]ame', mode = { 'n', 'x' } },
+    { '<leader>la', vim.lsp.buf.code_action, desc = '[L]ist [A]ction' },
+    { '<leader>lA', vim.lsp.buf.code_action, desc = '[L]ist [A]ction (auto)' },
+    { '<leader>lgr', require('snacks').picker.lsp_references, desc = '[G]oto [R]eferences' },
+    { '<leader>lgi', require('snacks').picker.lsp_implementations, desc = '[G]oto [I]mplementation' },
+    { '<leader>lgd', require('snacks').picker.lsp_definitions, desc = '[G]oto [D]efinition' },
+    { '<leader>lgD', require('snacks').picker.lsp_declarations, desc = '[G]oto [D]eclaration' },
+    { '<leader>lgt', require('snacks').picker.lsp_type_definitions, desc = '[G]oto [T]ype Definition' },
+    { '<leader>ls', require('snacks').picker.lsp_symbols, desc = 'Open Document [S]ymbols' },
+    { '<leader>lS', '<cmd>Trouble symbols toggle focus=false<cr>', desc = 'Open Workspace [S]ymbols' },
+    { '<leader>ll', '<cmd>Trouble diagnostics toggle<cr>', desc = '[L]ist Workspace Diagnostics' },
+  },
   config = function()
-    -- Brief aside: **What is LSP?**
-    --
-    -- LSP is an initialism you've probably heard, but might not understand what it is.
-    --
-    -- LSP stands for Language Server Protocol. It's a protocol that helps editors
-    -- and language tooling communicate in a standardized fashion.
-    --
-    -- In general, you have a "server" which is some tool built to understand a particular
-    -- language (such as `gopls`, `lua_ls`, `rust_analyzer`, etc.). These Language Servers
-    -- (sometimes called LSP servers, but that's kind of like ATM Machine) are standalone
-    -- processes that communicate with some "client" - in this case, Neovim!
-    --
-    -- LSP provides Neovim with features like:
-    --  - Go to definition
-    --  - Find references
-    --  - Autocompletion
-    --  - Symbol Search
-    --  - and more!
-    --
-    -- Thus, Language Servers are external tools that must be installed separately from
-    -- Neovim. This is where `mason` and related plugins come into play.
-    --
-    -- If you're wondering about lsp vs treesitter, you can check out the wonderfully
-    -- and elegantly composed help section, `:help lsp-vs-treesitter`
-
-    --  This function gets run when an LSP attaches to a particular buffer.
-    --    That is to say, every time a new file is opened that is associated with
-    --    an lsp (for example, opening `main.rs` is associated with `rust_analyzer`) this
-    --    function will be executed to configre the current buffer
     vim.api.nvim_create_autocmd('LspAttach', {
       group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
       callback = function(event)
-        -- NOTE: Remember that Lua is a real programming language, and as such it is possible
-        -- to define small helper and utility functions so you don't have to repeat yourself.
-        --
-        -- In this case, we create a function that lets us more easily define mappings specific
-        -- for LSP related items. It sets the mode, buffer and description for us each time.
-        local map = function(keys, func, desc, mode)
-          mode = mode or 'n'
-          vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
-        end
-
-        map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
-        map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
-        map('grr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
-        map('gri', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
-        map('grd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
-        map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
-        map('gO', require('telescope.builtin').lsp_document_symbols, 'Open Document Symbols')
-        map('gW', require('telescope.builtin').lsp_dynamic_workspace_symbols, 'Open Workspace Symbols')
-        map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
-        --map('grl', require('telescope.builtin').lsp_liagnostics, '[L]ist Workspace Diagnostics')
-
         -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
         ---@param client vim.lsp.Client
         ---@param method vim.lsp.protocol.Method
@@ -115,6 +78,11 @@ return {
               vim.api.nvim_clear_autocmds { group = 'kickstart-lsp-highlight', buffer = event2.buf }
             end,
           })
+        end
+
+        local map = function(keys, func, desc, mode)
+          mode = mode or 'n'
+          vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
         end
 
         -- The following code creates a keymap to toggle inlay hints in your
