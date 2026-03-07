@@ -29,7 +29,6 @@ end
 ---@field path string The absolute path to the solution file
 ---@field header SolutionHeader The parsed solution header information
 ---@field tree Node[]
-
 local Solution = {}
 Solution.__index = Solution
 

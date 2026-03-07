@@ -1,139 +1,21 @@
-local M = {}
+local Snacks = require 'snacks'
 local lector = require 'custom.dominicus.lector'
 
--- Internal State
-M.state = {
-  slnx_path = nil,
-  project_paths = {}, -- Flat list of absolute paths to project directories
-  solution_tree = nil, -- The full Solution object from your parser
-  solution = nil,
+local M = {
+  state = {
+    slnx_path = nil,
+    root_path = nil,
+    tree = nil, ---@type snacks.picker.explorer.Tree
+  },
 }
 
-function M.open_dotnet(opts)
+function M.config(opts)
   opts = opts or {}
-  opts.source = 'dotnet_explorer'
-  opts.slnx = M.state.slnx_path
-  return Snacks.picker.pick(opts)
-end
+  opts.tree = true
+  opts.watch = true
+  opts.matcher = { sort_empty = false, fuzzy = false }
 
---- Transforms the parser tree into flat items for Snacks.picker
---- @param nodes table[] The tree nodes from your parser
---- @param parent_path string Used to create a unique 'virtual path' for the tree logic
---- @param items table The list we are accumulating
-local function transform_tree_to_items(nodes, parent_path, items)
-  for _, node in ipairs(nodes) do
-    -- Create a unique virtual path for tree nesting logic
-    local virtual_path = parent_path == '' and node.name or (parent_path .. '/' .. node.name)
-
-    table.insert(items, {
-      text = node.name,
-      -- Important: Snacks tree logic uses the 'file' field to determine hierarchy levels
-      file = virtual_path,
-      -- Store the actual physical path for projects
-      project_path = node.kind == 'project' and node.path or nil,
-      is_dir = node.kind == 'directory',
-      kind = node.kind,
-    })
-
-    if node.kind == 'directory' and node.children then
-      transform_tree_to_items(node.children, virtual_path, items)
-    end
-  end
-end
-
---- Recursive helper to extract all project paths from your Solution tree
---- @param nodes table[] Your parser's tree nodes
---- @param paths table Accretive table of paths
-local function collect_project_paths(nodes, paths)
-  for _, node in ipairs(nodes) do
-    if node.kind == 'project' and node.path then
-      table.insert(paths, node.path)
-    elseif node.kind == 'directory' and node.children then
-      collect_project_paths(node.children, paths)
-    end
-  end
-end
-
-function M.load_solution(slnx_path)
-  local solution = lector.parse_projects(slnx_path)
-  if not solution then
-    return
-  end
-
-  M.state.slnx_path = slnx_path
-  M.state.solution_tree = solution
-
-  -- Flatten the tree to get directories for the pickers
-  M.state.project_paths = {}
-  collect_project_paths(solution.tree, M.state.project_paths)
-
-  vim.notify('Solution Loaded: ' .. vim.fn.fnamemodify(slnx_path, ':t'), vim.log.levels.INFO)
-
-  -- TODO: Trigger Roslyn to target this solution specifically
-  -- Most roslyn.nvim setups look for a global or buffer-local sln path
-  -- vim.g.roslyn_nvim_selected_solution = slnx_path
-
-  -- Automatically open the Solution Explorer
-  M.open_solution_explorer()
-end
-
-function M.open_solution_explorer()
-  if not M.state.solution then
-    return vim.notify('No solution loaded.', vim.log.levels.WARN)
-  end
-
-  local items = {}
-  transform_tree_to_items(M.state.solution.tree, '', items)
-
-  return Snacks.picker {
-    title = 'Solution Explorer',
-    items = items,
-    -- We define the layout manually to fix the "no root box" error
-    layout = {
-      preview = false, -- We don't need a code preview for a solution tree
-      layout = {
-        position = 'right',
-        width = 35,
-        box = 'vertical',
-        { win = 'list', border = 'none', title = '{title}', title_pos = 'center' },
-      },
-    },
-    format = 'file',
-    tree = true,
-    finder = function()
-      return items
-    end,
-    win = {
-      list = {
-        keys = {
-          ['<cr>'] = 'confirm',
-          ['o'] = 'confirm',
-          ['<2-LeftMouse>'] = 'confirm',
-        },
-      },
-    },
-    actions = {
-      confirm = function(picker, item)
-        if item.kind == 'project' then
-          -- Instead of opening a directory, we open a scoped file picker for that project
-          picker:close()
-          M.project_files(item.project_path, item.text)
-        else
-          -- It's a virtual folder, toggle the expansion
-          picker:explorer_toggle()
-        end
-      end,
-    },
-  }
-end
-
---- Scoped Picker for a specific project
-function M.project_files(path, name)
-  Snacks.picker.files {
-    title = 'Project: ' .. name,
-    dirs = { path },
-    hidden = true,
-  }
+  return opts
 end
 
 function M.pick_solution()
@@ -141,61 +23,240 @@ function M.pick_solution()
     title = 'Select Solution',
     finder = 'files',
     args = { '--glob', '*.slnx' },
+    show_empty = false,
+    auto_confirm = true,
     actions = {
       confirm = function(picker, item)
         picker:close()
         M.state.slnx_path = item.file
-        M.state.solution = lector.parse_projects(item.file)
-
-        if M.state.solution then
-          -- Pass the solution to roslyn.nvim if needed
-          vim.g.roslyn_nvim_selected_solution = item.file
-          M.open_solution_explorer()
-        end
       end,
     },
   }
 end
 
-function M.solution_files()
-  if #M.state.project_paths == 0 then
-    return M.pick_solution()
-  end
+function M.finder(opts, ctx)
+  if not M.state.tree then
+    local Tree = require 'custom.dominicus.cartographer.tree'
+    local tree = Tree.new()
 
-  Snacks.picker.files {
-    title = 'Files: ' .. vim.fn.fnamemodify(M.state.slnx_path, ':t'),
-    dirs = M.state.project_paths,
-  }
-end
+    local solution = lector.parse_projects(M.state.slnx_path) ---@type Solution|nil
 
-function M.solution_grep()
-  if not M.state.solution then
-    return M.pick_solution()
-  end
+    if not solution then
+      Snacks.notify('Failed to parse solution: ' .. M.state.slnx_path, vim.log.levels.ERROR)
+      return {}
+    end
 
-  local paths = {}
-  local function collect(nodes)
-    for _, n in ipairs(nodes) do
-      if n.kind == 'project' then
-        table.insert(paths, n.path)
-      elseif n.kind == 'directory' then
-        collect(n.children)
+    local solution_name = vim.fn.fnamemodify(M.state.slnx_path, ':t:r')
+    local root = tree:add_virtual('', solution_name)
+
+    local function add_nodes(parent, nodes)
+      for _, node in ipairs(nodes) do
+        if node.kind == 'directory' then
+          local dir_node = tree:add_virtual(parent.path or parent.name, node.name)
+          add_nodes(dir_node, node.children)
+        elseif node.kind == 'project' then
+          tree:add_project(parent.path or parent.name, node.path, node.name)
+        end
       end
     end
+
+    add_nodes(root, solution.tree)
+
+    M.state.tree = tree
+    M.state.root_path = root.path
   end
-  collect(M.state.solution.tree)
 
-  Snacks.picker.grep {
-    title = 'Grep Solution',
-    dirs = paths,
+  local items = {}
+  M.state.tree:get(M.state.root_path, function(node)
+    table.insert(items, node)
+  end, { expand = true })
+
+  return items
+end
+
+function M.format(item, picker)
+  local ret = {}
+
+  -- build tree prefix
+  local node = item
+  local indent = {} ---@type string[]
+  while node and node.parent and node.parent.path ~= '' do
+    local is_last = node.last
+    local icon = ''
+    if node ~= item then
+      icon = is_last and '  ' or '│ '
+    else
+      icon = is_last and '└╴' or '├╴'
+    end
+
+    table.insert(indent, 1, icon)
+    node = node.parent
+  end
+
+  -- 1. Add tree prefix
+  ret[#ret + 1] = { table.concat(indent), 'SnacksPickerTree' }
+  -- 2. Add an icon (using snacks' built-in icon logic)
+  if item.dir then
+    local name = item.text or item.name or 'INVALID NODE'
+    if item.type == 'directory' then
+      local icon = item.open and '󰝰 ' or '󰉋 '
+      ret[#ret + 1] = { icon .. ' ' .. name, 'SnacksPickerDirectory' }
+    elseif item.type == 'virtual' then
+      local icon = item.open and '󰝰 ' or '󰉋 '
+      ret[#ret + 1] = { icon .. ' ' .. name, 'SnacksPickerDirectory' }
+    elseif item.type == 'solution' then
+      local icon, icon_hl = Snacks.util.icon('slnx', 'extension')
+      ret[#ret + 1] = { icon .. ' ' .. name, icon_hl }
+    elseif item.type == 'project' then
+      local icon, icon_hl = Snacks.util.icon('csproj', 'extension')
+      ret[#ret + 1] = { icon .. ' ', icon_hl }
+      ret[#ret + 1] = { name, 'SnacksPickerProject' }
+    end
+  else
+    local file_name = vim.fs.basename(item.path)
+    local icon, icon_hl = Snacks.util.icon(file_name, 'file')
+    table.insert(ret, { icon .. ' ', icon_hl })
+    table.insert(ret, { file_name, 'SnacksPickerFile' })
+  end
+
+  return ret
+end
+
+function M.setup()
+  Snacks.picker.sources.cartographer = {
+    title = 'Solution Explorer',
+    tree = true,
+    jump = {
+      close = false,
+    },
+    auto_close = false,
+    layout = {
+      preset = 'sidebar',
+      preview = false,
+      width = 35,
+    },
+    format = M.format,
+    finder = M.finder,
+    actions = {
+      confirm = function(picker, item, action)
+        if not item then
+          return
+        end
+
+        if item.dir then
+          item.open = not item.open
+          if not item.open then
+            item.expanded = false
+          end
+          picker:refresh()
+        elseif item.disk_path then
+          item.file = item.disk_path
+          Snacks.picker.actions.jump(picker, item, action)
+        end
+      end,
+    },
+    keys = {
+      win = {
+        list = {
+          ['<cr>'] = 'confirm',
+          ['o'] = 'confirm',
+          ['<2-LeftMouse>'] = 'confirm',
+        },
+      },
+    },
+    icons = {
+      files = {
+        enabled = true, -- show file icons
+        dir = '󰉋 ',
+        dir_open = '󰝰 ',
+        file = '󰈔 ',
+      },
+      keymaps = {
+        nowait = '󰓅 ',
+      },
+      tree = {
+        vertical = '│ ',
+        middle = '├╴',
+        last = '└╴',
+      },
+      undo = {
+        saved = ' ',
+      },
+      ui = {
+        live = '󰐰 ',
+        hidden = 'h',
+        ignored = 'i',
+        follow = 'f',
+        selected = '● ',
+        unselected = '○ ',
+        -- selected = " ",
+      },
+      git = {
+        enabled = true, -- show git icons
+        commit = '󰜘 ', -- used by git log
+        staged = '●', -- staged changes. always overrides the type icons
+        added = '',
+        deleted = '',
+        ignored = ' ',
+        modified = '○',
+        renamed = '',
+        unmerged = ' ',
+        untracked = '?',
+      },
+      diagnostics = {
+        Error = ' ',
+        Warn = ' ',
+        Hint = ' ',
+        Info = ' ',
+      },
+      lsp = {
+        unavailable = '',
+        enabled = ' ',
+        disabled = ' ',
+        attached = '󰖩 ',
+      },
+      kinds = {
+        Array = ' ',
+        Boolean = '󰨙 ',
+        Class = ' ',
+        Color = ' ',
+        Control = ' ',
+        Collapsed = ' ',
+        Constant = '󰏿 ',
+        Constructor = ' ',
+        Copilot = ' ',
+        Enum = ' ',
+        EnumMember = ' ',
+        Event = ' ',
+        Field = ' ',
+        File = ' ',
+        Folder = ' ',
+        Function = '󰊕 ',
+        Interface = ' ',
+        Key = ' ',
+        Keyword = ' ',
+        Method = '󰊕 ',
+        Module = ' ',
+        Namespace = '󰦮 ',
+        Null = ' ',
+        Number = '󰎠 ',
+        Object = ' ',
+        Operator = ' ',
+        Package = ' ',
+        Property = ' ',
+        Reference = ' ',
+        Snippet = '󱄽 ',
+        String = ' ',
+        Struct = '󰆼 ',
+        Text = ' ',
+        TypeParameter = ' ',
+        Unit = ' ',
+        Unknown = ' ',
+        Value = ' ',
+        Variable = '󰀫 ',
+      },
+    },
   }
-end
-
-Snacks.picker.actions.solution_files = function()
-  M.solution_files()
-end
-Snacks.picker.actions.solution_grep = function()
-  M.solution_grep()
 end
 
 return M

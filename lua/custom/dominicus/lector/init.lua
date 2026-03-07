@@ -45,7 +45,7 @@ function M.parse_projects(slnx_path)
 
         full_path = vim.fs.dirname(normalize(full_path))
 
-        local name = vim.fn.fnamemodify(full_path, ':t:r')
+        local name = vim.fs.basename(full_path)
 
         solution:add_project({
           name = name,

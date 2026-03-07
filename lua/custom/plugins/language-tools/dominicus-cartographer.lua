@@ -8,9 +8,8 @@ return {
     { 'folke/snacks.nvim' },
   },
   config = function()
-    require('custom.dominicus.cartographer.snacks').setup()
-    require('custom.dominicus.cartographer.snacks').pick_solution()
-    -- require('custom.dominicus.cartographer').pick_solution()
+    require('custom.dominicus.cartographer').setup()
+    require('custom.dominicus.cartographer').pick_solution()
   end,
   keys = {
     {

@@ -1,15 +1,17 @@
 -- copy of snacks.nvim.explorer.tree with adjustments for supporting virtual nodes
 
 ---@class snacks.picker.explorer.Node
----@field path string
+---@field path string          -- position in the virtual tree
+---@field disk_path? string    -- real filesystem path (nil for pure virtual containers)
 ---@field name string
+---@field text? string
 ---@field hidden? boolean
 ---@field status? string merged git status
 ---@field dir_status? string git status of the directory
 ---@field ignored? boolean
----@field type "file"|"directory"|"link"|"fifo"|"socket"|"char"|"block"|"unknown"
+---@field type "file"|"directory"|"link"|"fifo"|"socket"|"char"|"block"|"unknown"|"solution"|"project"
 ---@field dir? boolean
----@field open? boolean wether the node should be expanded (only for directories)
+---@field open? boolean wether the node should be expanded in the tree (only for type directory|project|solution|virtual)
 ---@field expanded? boolean wether the node is expanded (only for directories)
 ---@field parent? snacks.picker.explorer.Node
 ---@field last? boolean child of the parent
@@ -28,7 +30,7 @@
 local uv = vim.uv or vim.loop
 
 local function norm(path)
-  return svim.fs.normalize(path):gsub('/$', ''):gsub('^$', '/')
+  return vim.fs.normalize(path):gsub('/$', ''):gsub('^$', '/')
 end
 
 local function assert_dir(path)
@@ -67,24 +69,72 @@ function Tree:is_project(path)
   return false
 end
 
+--- Add a pure virtual directory (no filesystem backing, e.g. solution folders)
+---@param parent_path? string path of the parent node (nil or '' for root)
+---@param name string display name
+---@return snacks.picker.explorer.Node
 function Tree:add_virtual(parent_path, name)
-  local parent = self:find(parent_path)
+  local parent
+  if parent_path == nil or parent_path == '' then
+    parent = self.root
+  else
+    parent = self.nodes[parent_path]
+    assert(parent, 'Parent node not found: ' .. parent_path)
+  end
 
-  local path = parent.path == '' and name or (parent.path .. '/' .. name)
+  local path = parent == self.root and name or (parent.path .. '/' .. name)
 
   local node = {
     name = name,
+    text = name,
     path = path,
     parent = parent,
     children = {},
     type = 'virtual',
     dir = true,
-    virtual = true,
     open = true,
   }
 
   parent.children[name] = node
   self.nodes[path] = node
+
+  return node
+end
+
+--- Attach a real filesystem directory as a project node
+---@param parent_path? string path of the parent node (nil or '' for root)
+---@param disk_path string absolute filesystem path to the real directory
+---@param name? string display name override (defaults to the directory's basename)
+---@return snacks.picker.explorer.Node
+function Tree:add_project(parent_path, disk_path, name)
+  disk_path = vim.fs.normalize(disk_path)
+  assert(vim.fn.isdirectory(disk_path) == 1, 'Not a directory: ' .. disk_path)
+
+  local parent
+  if parent_path == nil or parent_path == '' then
+    parent = self.root
+  else
+    parent = self.nodes[parent_path]
+    assert(parent, 'Parent node not found: ' .. parent_path)
+  end
+
+  name = name or vim.fs.basename(disk_path)
+  local virtual_path = parent == self.root and name or (parent.path .. '/' .. name)
+
+  local node = {
+    name = name,
+    text = name,
+    path = virtual_path,
+    disk_path = disk_path,
+    parent = parent,
+    children = {},
+    type = 'project',
+    dir = true,
+    open = false,
+  }
+
+  parent.children[name] = node
+  self.nodes[virtual_path] = node
 
   return node
 end
@@ -120,22 +170,13 @@ function Tree:child(node, name, type)
     local path = node.path .. '/' .. name
     path = node == self.root and name or path
 
-    local is_dir = type == 'directory'
-    local is_project = false
-
-    if is_dir and not node.virtual and self:is_project(path) then
-      type = 'project'
-      is_project = true
-    end
-
     node.children[name] = {
       name = name,
       path = path,
       parent = node,
       children = {},
       type = type,
-      dir = is_dir or type == 'virtual' or type == 'project',
-      project = is_project,
+      dir = type == 'directory' or type == 'virtual' or type == 'project' or (type == 'link' and vim.fn.isdirectory(path) == 1),
       hidden = name:sub(1, 1) == '.',
     }
 
@@ -187,15 +228,14 @@ function Tree:expand(node)
 
   assert(node.dir, 'Can only expand directories')
 
-  -- Virtual nodes are purely manual containers
-  if node.virtual then
+  -- No disk_path means pure virtual — children are managed manually
+  if not node.disk_path then
     node.expanded = true
     return
   end
 
   local found = {}
-
-  local fs = uv.fs_scandir(node.path)
+  local fs = uv.fs_scandir(node.disk_path)
 
   while fs do
     local name, t = uv.fs_scandir_next(fs)
@@ -203,20 +243,21 @@ function Tree:expand(node)
       break
     end
 
-    t = t or Snacks.util.path_type(node.path .. '/' .. name)
-
+    t = t or Snacks.util.path_type(node.disk_path .. '/' .. name)
     found[name] = true
 
     local child = self:child(node, name, t)
-
-    child.type = t
-    child.dir = t == 'directory' or t == 'project' or (t == 'link' and vim.fn.isdirectory(child.path) == 1)
+    child.type = t == 'directory' and 'directory' or t
+    child.dir = t == 'directory' or t == 'project' or (t == 'link' and vim.fn.isdirectory(node.disk_path .. '/' .. name) == 1)
+    child.disk_path = node.disk_path .. '/' .. name
   end
 
+  -- Clean up deleted files, but preserve virtual/project children
   for name in pairs(node.children) do
     local c = node.children[name]
-    if not c.virtual and not found[name] then
+    if c.disk_path and not found[name] then
       node.children[name] = nil
+      self.nodes[c.path] = nil
     end
   end
 
@@ -303,12 +344,15 @@ function Tree:get(cwd, cb, opts)
 
   local node = self:node(cwd) or self:find(cwd)
 
-  -- Only assert filesystem directories for real nodes
-  if not node.virtual then
+  -- Validate the directory exists on disk where applicable
+  if node.disk_path then
+    assert_dir(node.disk_path)
+  elseif node.type ~= 'virtual' then
     assert_dir(cwd)
   end
 
   node.open = true
+  node.last = true -- INFO: the root of the walk is always the "last" (only) child at its level
 
   local filter = self:filter(opts)
 
@@ -448,4 +492,4 @@ function Tree:snapshot(node, fields)
   return ret
 end
 
-return Tree.new()
+return Tree
