@@ -51,8 +51,12 @@ vim.o.showmode = false
 vim.o.sessionoptions = 'blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions'
 
 -- use OS slash as the path separator
--- TODO: doesn't work on linux?
--- vim.opt.shellslash = false
+if vim.fn.has 'win32' == 1 or vim.fn.has 'win64' then
+  vim.opt.shellslash = false
+  vim.defer_fn(function()
+    vim.opt.shellslash = false
+  end, 5000)
+end
 
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.

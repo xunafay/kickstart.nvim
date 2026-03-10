@@ -9,4 +9,5 @@ return {
   { import = 'custom.plugins.movement' },
   { import = 'custom.plugins.syntax' },
   { import = 'custom.plugins.git' },
+  { import = 'custom.plugins.debug' },
 }
