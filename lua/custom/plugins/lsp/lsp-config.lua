@@ -23,16 +23,14 @@ return {
   },
   keys = {
     { '<leader>rn', vim.lsp.buf.rename, desc = '[R]e[n]ame', mode = { 'n', 'x' } },
-    { '<leader>la', vim.lsp.buf.code_action, desc = '[L]ist [A]ction' },
-    { '<leader>lA', vim.lsp.buf.code_action, desc = '[L]ist [A]ction (auto)' },
+    { '<leader>la', vim.lsp.buf.code_action, desc = '[L]ist [A]ction', mode = { 'n', 'x', 'v' } },
+    { '<leader>lA', vim.lsp.buf.code_action, desc = '[L]ist [A]ction (auto)', mode = { 'n', 'x', 'v' } },
     { '<leader>lgr', require('snacks').picker.lsp_references, desc = '[G]oto [R]eferences' },
     { '<leader>lgi', require('snacks').picker.lsp_implementations, desc = '[G]oto [I]mplementation' },
     { '<leader>lgd', require('snacks').picker.lsp_definitions, desc = '[G]oto [D]efinition' },
     { '<leader>lgD', require('snacks').picker.lsp_declarations, desc = '[G]oto [D]eclaration' },
     { '<leader>lgt', require('snacks').picker.lsp_type_definitions, desc = '[G]oto [T]ype Definition' },
     { '<leader>ls', require('snacks').picker.lsp_symbols, desc = 'Open Document [S]ymbols' },
-    { '<leader>lS', '<cmd>Trouble symbols toggle focus=false<cr>', desc = 'Open Workspace [S]ymbols' },
-    { '<leader>ll', '<cmd>Trouble diagnostics toggle<cr>', desc = '[L]ist Workspace Diagnostics' },
   },
   config = function()
     -- Brief aside: **What is LSP?**

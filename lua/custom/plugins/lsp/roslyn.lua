@@ -1,30 +1,46 @@
 return {
   enable = true,
+  lazy = false,
   'seblyng/roslyn.nvim',
   ---@module 'roslyn.config'
   ---@type RoslynNvimConfig
   opts = {
-    -- your configuration comes here; leave empty for default settings
+    filewatching = 'auto',
+    choose_target = function(targets)
+      local slnx = {}
+
+      for _, file in ipairs(targets) do
+        if type(file) == 'string' and file:match '%.slnx$' then
+          table.insert(slnx, file)
+        end
+      end
+
+      if #slnx == 1 then
+        return slnx[1]
+      end
+
+      return nil
+    end,
+    lock_target = true,
+  },
+  dependencies = {
+    'j-hui/fidget.nvim',
+  },
+  keys = {
+    {
+      '<leader>lr',
+      function()
+        vim.cmd 'Roslyn restart'
+        vim.cmd 'Roslyn start'
+      end,
+      desc = 'Restart Roslyn LSP',
+    },
   },
   config = function()
     local handles = {}
 
-    -- local mason_root = require('mason.settings').current.install_root_dir
-    -- local rzls_path = vim.fn.expand(mason_root .. '/packages/roslyn/libexec/.razorExtension')
-    --
-    -- local cmd = {
-    --   'roslyn',
-    --   '--stdio',
-    --   '--logLevel=Information',
-    --   '--extensionLogDirectory=' .. vim.fs.dirname(vim.lsp.get_log_path()),
-    --   '--razorSourceGenerator=' .. vim.fs.joinpath(rzls_path, 'Microsoft.CodeAnalysis.Razor.Compiler.dll'),
-    --   '--razorDesignTimePath=' .. vim.fs.joinpath(rzls_path, 'Targets', 'Microsoft.NET.Sdk.Razor.DesignTime.targets'),
-    --   '--extension=' .. vim.fs.joinpath(rzls_path, 'Microsoft.VisualStudioCode.RazorExtension.dll'),
-    -- }
-
     vim.lsp.config('roslyn', {
-      -- cmd = cmd,
-      on_attach = function()
+      on_attach = function(client)
         vim.notify('Roslyn LSP attached', vim.log.levels.INFO)
       end,
       settings = {
@@ -37,7 +53,7 @@ return {
           dotnet_enable_tests_code_lens = true,
         },
         ['csharp|background_analysis'] = {
-          dotnet_analyzer_diagnostics_scope = 'fullSolution',
+          dotnet_analyzer_diagnostics_scope = 'openFiles',
           dotnet_compiler_diagnostics_scope = 'fullSolution',
         },
         ['csharp|completion'] = {
@@ -65,13 +81,13 @@ return {
             message = ev.data.params[2].message,
           }
         else
-          -- handles[token] = require('fidget.progress').handle.create {
-          --   title = ev.data.params[2].state,
-          --   message = ev.data.params[2].message,
-          --   lsp_client = {
-          --     name = 'roslyn',
-          --   },
-          -- }
+          handles[token] = require('fidget.progress').handle.create {
+            title = ev.data.params[2].state,
+            message = ev.data.params[2].message,
+            lsp_client = {
+              name = 'roslyn',
+            },
+          }
         end
       end,
     })
