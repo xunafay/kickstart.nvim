@@ -19,6 +19,14 @@ function M.config(opts)
 end
 
 function M.pick_solution()
+  local results = vim.fn.systemlist { 'rg', '--files', '--max-depth', '1', '--glob', '*.slnx' }
+  -- early return if there is only one solution file in the current working directory
+  if #results == 1 then
+    vim.notify('Automatically selected solution: ' .. results[1], vim.log.levels.INFO)
+    M.state.slnx_path = results[1]
+    return
+  end
+
   Snacks.picker.files {
     title = 'Select Solution',
     finder = 'files',
@@ -162,98 +170,6 @@ function M.setup()
           ['o'] = 'confirm',
           ['<2-LeftMouse>'] = 'confirm',
         },
-      },
-    },
-    icons = {
-      files = {
-        enabled = true, -- show file icons
-        dir = '󰉋 ',
-        dir_open = '󰝰 ',
-        file = '󰈔 ',
-      },
-      keymaps = {
-        nowait = '󰓅 ',
-      },
-      tree = {
-        vertical = '│ ',
-        middle = '├╴',
-        last = '└╴',
-      },
-      undo = {
-        saved = ' ',
-      },
-      ui = {
-        live = '󰐰 ',
-        hidden = 'h',
-        ignored = 'i',
-        follow = 'f',
-        selected = '● ',
-        unselected = '○ ',
-        -- selected = " ",
-      },
-      git = {
-        enabled = true, -- show git icons
-        commit = '󰜘 ', -- used by git log
-        staged = '●', -- staged changes. always overrides the type icons
-        added = '',
-        deleted = '',
-        ignored = ' ',
-        modified = '○',
-        renamed = '',
-        unmerged = ' ',
-        untracked = '?',
-      },
-      diagnostics = {
-        Error = ' ',
-        Warn = ' ',
-        Hint = ' ',
-        Info = ' ',
-      },
-      lsp = {
-        unavailable = '',
-        enabled = ' ',
-        disabled = ' ',
-        attached = '󰖩 ',
-      },
-      kinds = {
-        Array = ' ',
-        Boolean = '󰨙 ',
-        Class = ' ',
-        Color = ' ',
-        Control = ' ',
-        Collapsed = ' ',
-        Constant = '󰏿 ',
-        Constructor = ' ',
-        Copilot = ' ',
-        Enum = ' ',
-        EnumMember = ' ',
-        Event = ' ',
-        Field = ' ',
-        File = ' ',
-        Folder = ' ',
-        Function = '󰊕 ',
-        Interface = ' ',
-        Key = ' ',
-        Keyword = ' ',
-        Method = '󰊕 ',
-        Module = ' ',
-        Namespace = '󰦮 ',
-        Null = ' ',
-        Number = '󰎠 ',
-        Object = ' ',
-        Operator = ' ',
-        Package = ' ',
-        Property = ' ',
-        Reference = ' ',
-        Snippet = '󱄽 ',
-        String = ' ',
-        Struct = '󰆼 ',
-        Text = ' ',
-        TypeParameter = ' ',
-        Unit = ' ',
-        Unknown = ' ',
-        Value = ' ',
-        Variable = '󰀫 ',
       },
     },
   }

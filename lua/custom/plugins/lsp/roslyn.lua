@@ -2,27 +2,6 @@ return {
   enable = true,
   lazy = false,
   'seblyng/roslyn.nvim',
-  ---@module 'roslyn.config'
-  ---@type RoslynNvimConfig
-  opts = {
-    filewatching = 'auto',
-    choose_target = function(targets)
-      local slnx = {}
-
-      for _, file in ipairs(targets) do
-        if type(file) == 'string' and file:match '%.slnx$' then
-          table.insert(slnx, file)
-        end
-      end
-
-      if #slnx == 1 then
-        return slnx[1]
-      end
-
-      return nil
-    end,
-    lock_target = true,
-  },
   dependencies = {
     'j-hui/fidget.nvim',
   },
@@ -37,6 +16,26 @@ return {
     },
   },
   config = function()
+    require('roslyn').setup {
+      filewatching = 'roslyn',
+      choose_target = function(targets)
+        local slnx = {}
+
+        for _, file in ipairs(targets) do
+          if type(file) == 'string' and file:match '%.slnx$' then
+            table.insert(slnx, file)
+          end
+        end
+
+        if #slnx == 1 then
+          return slnx[1]
+        end
+
+        return nil
+      end,
+      lock_target = true,
+    }
+
     local handles = {}
 
     vim.lsp.config('roslyn', {
